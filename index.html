@@ -309,24 +309,58 @@
 
         .donut-chart {
             position: relative;
-            width: 250px;
-            height: 250px;
+            width: 200px;
+            height: 200px;
             margin: 20px auto;
         }
 
-        .pie-chart-svg {
+        .donut-ring {
             width: 200px;
             height: 200px;
-            margin: 0 auto;
-            display: block;
+            border-radius: 50%;
+            position: relative;
+            background: conic-gradient(
+                from 0deg,
+                #ff9f0a 0deg var(--bitcoin-end, 126deg),
+                #ff6112 var(--bitcoin-end, 126deg) var(--stocks-end, 247deg),
+                #ffd60a var(--stocks-end, 247deg) var(--commodities-end, 333deg),
+                #13d1a3 var(--commodities-end, 333deg) 360deg
+            );
+            transition: all 0.3s ease;
         }
 
-        .pie-slice {
-            transition: opacity 0.3s ease;
+        .donut-ring::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 120px;
+            height: 120px;
+            background: var(--rui-color-widget-background);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
         }
 
-        .pie-slice:hover {
-            opacity: 0.8;
+        .donut-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--rui-color-foreground);
+            z-index: 2;
+        }
+
+        .donut-center-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .donut-center-label {
+            font-size: 0.7rem;
+            color: var(--rui-color-grey-tone-20);
+            margin: 4px 0 0 0;
         }
 
         .legend {
@@ -471,9 +505,11 @@
         <div class="widget allocation-widget">
             <h2 class="widget-title">Asset Allocation</h2>
             <div class="donut-chart">
-                <svg class="pie-chart-svg" viewBox="0 0 200 200" id="pie-chart">
-                    <!-- Pie slices will be dynamically generated -->
-                </svg>
+                <div class="donut-ring" id="donut-ring"></div>
+                <div class="donut-center">
+                    <div class="donut-center-value" id="donut-total">€0</div>
+                    <div class="donut-center-label">Total</div>
+                </div>
             </div>
             <div class="legend" id="allocation-legend">
                 <!-- Legend will be dynamically updated -->

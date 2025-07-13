@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark" data-theme-accent-color="invest" data-theme-transparent="true" data-theme-background="orange">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Dashboard</title>
+    <style>
+        /* Revolut CSS Variables */
+        :root {
+            --rui-font-default: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", Helvetica, Arial, Arimo, sans-serif;
+            --rui-font-system: var(--rui-font-default);
+            --rui-font-brand: "Inter", var(--rui-font-system);
+            --rui-color-grouped-background: #140700;
+            --rui-color-widget-background: #1e1914;
+            --rui-color-foreground: #f4f4f4;
+            --rui-color-accent: #ff6112;
+            --rui-color-positive: #13d1a3;
+            --rui-color-negative: #ee4a59;
+            --rui-color-orange: #ff9f0a;
+            --rui-color-grey-tone-20: #4e4e50;
+            --rui-color-grey-tone-10: #dfe3e7;
+            --rui-gradient-glow: radial-gradient(50% 50% at 50% 50%, rgba(220, 38, 24, .1) 0%, rgba(220, 38, 24, 0) 100%), 
+                                 radial-gradient(50% 50% at 50% 50%, rgba(180, 54, 45, .3) 0%, rgba(182, 56, 47, 0) 100%), 
+                                 radial-gradient(50% 50% at 50% 50%, rgba(242, 204, 54, .2) 0%, rgba(242, 204, 54, 0) 100%);
+        }
+
+        body {
+            margin: 0;
+            padding: 20px;
+            background: var(--rui-color-grouped-background);
+            background-image: var(--rui-gradient-glow);
+            color: var(--rui-color-foreground);
+            font-family: var(--rui-font-system);
+            min-height: 100vh;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr 1fr;
+            grid-template-areas: 
+                "header header"
+                "platforms allocation"
+                "chart chart"
+                "holdings details";
+        }
+
+        .header-widget {
+            grid-area: header;
+        }
+
+        .platforms-widget {
+            grid-area: platforms;
+        }
+
+        .allocation-widget {
+            grid-area: allocation;
+        }
+
+        .chart-widget {
+            grid-area: chart;
+        }
+
+        .holdings-widget {
+            grid-area: holdings;
+        }
+
+        .details-widget {
+            grid-area: details;
+        }
+
+        .widget {
+            background: var(--rui-color-widget-background);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header-widget {
+            text-align: center;
+            background: linear-gradient(135deg, var(--rui-color-accent) 0%, #ff9f0a 100%);
+            color: white;
+        }
+
+        .total-value {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin: 0;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.125rem;
+            opacity: 0.9;
+            margin: 8px 0 0 0;
+        }
+
+        .loading-indicator {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 1rem;
+            opacity: 0.8;
+        }
+
+        .widget-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin: 0 0 16px 0;
+            color: var(--rui-color-foreground);
+        }
+
+        .asset-grid {
+            display: grid;
+            gap: 12px;
+        }
+
+        .asset-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.2s ease;
+        }
+
+        .asset-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .asset-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .asset-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--rui-color-foreground);
+        }
+
+        .asset-platform {
+            font-size: 0.75rem;
+            color: var(--rui-color-grey-tone-20);
+            margin-top: 2px;
+        }
+
+        .asset-value {
+            text-align: right;
+        }
+
+        .asset-amount {
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--rui-color-foreground);
+        }
+
+        .asset-percentage {
+            font-size: 0.75rem;
+            color: var(--rui-color-grey-tone-20);
+            margin-top: 2px;
+        }
+
+        .platform-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .platform-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .platform-name {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--rui-color-foreground);
+            text-transform: capitalize;
+        }
+
+        .platform-value {
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--rui-color-positive);
+        }
+
+        .donut-chart {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            margin: 20px auto;
+        }
+
+        .donut-segment {
+            fill: none;
+            stroke-width: 20;
+            transition: all 0.3s ease;
+        }
+
+        .donut-bitcoin { stroke: var(--rui-color-orange); }
+        .donut-stocks { stroke: var(--rui-color-accent); }
+        .donut-commodities { stroke: #ffd60a; }
+        .donut-crypto { stroke: var(--rui-color-positive); }
+
+        .legend {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .legend-text {
+            font-size: 0.75rem;
+            color: var(--rui-color-grey-tone-20);
+        }
+
+        .legend-percentage {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--rui-color-foreground);
+            margin-left: auto;
+        }
+
+        .refresh-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--rui-color-accent);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 97, 18, 0.3);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .refresh-btn:hover {
+            background: #e55a0f;
+            transform: scale(1.1);
+        }
+
+        .refresh-btn.loading {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .last-updated {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            color: var(--rui-color-grey-tone-20);
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+            z-index: 1000;
+        }
+
+        .error-message {
+            background: var(--rui-color-negative);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                grid-template-areas: 
+                    "header"
+                    "platforms"
+                    "allocation"
+                    "holdings"
+                    "details"
+                    "chart";
+            }
+            
+            .total-value {
+                font-size: 2.5rem;
+            }
+
+            body {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="error-container"></div>
+
+    <div class="dashboard-container">
+        <!-- Portfolio Total Header -->
+        <div class="widget header-widget">
+            <h1 class="total-value" id="total-value">
+                €<span id="total-amount">Loading...</span>
+                <span class="loading-indicator" id="loading-indicator">🔄</span>
+            </h1>
+            <p class="subtitle">Total Portfolio Value</p>
+        </div>
+
+        <!-- Platform Breakdown -->
+        <div class="widget platforms-widget">
+            <h2 class="widget-title">Platforms</h2>
+            <div id="platforms-list">
+                <!-- Platforms will be dynamically loaded here -->
+                <div class="platform-item">
+                    <span class="platform-name">Loading...</span>
+                    <span class="platform-value">€...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Asset Type Distribution -->
+        <div class="widget allocation-widget">
+            <h2 class="widget-title">Asset Allocation</h2>
+            <div class="donut-chart">
+                <svg width="200" height="200" viewBox="0 0 200 200" id="allocation-chart">
+                    <!-- Will be dynamically updated -->
+                    <circle class="donut-segment donut-bitcoin" cx="100" cy="100" r="80" 
+                            stroke-dasharray="0 500" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+                </svg>
+            </div>
+            <div class="legend" id="allocation-legend">
+                <!-- Legend will be dynamically updated -->
+            </div>
+        </div>
+
+        <!-- Top Holdings -->
+        <div class="widget holdings-widget">
+            <h2 class="widget-title">Top Holdings</h2>
+            <div class="asset-grid" id="top-holdings">
+                <!-- Holdings will be dynamically loaded here -->
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <span class="asset-name">Loading holdings...</span>
+                        <span class="asset-platform">...</span>
+                    </div>
+                    <div class="asset-value">
+                        <span class="asset-amount">€...</span>
+                        <div class="asset-percentage">...%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Breakdown -->
+        <div class="widget details-widget">
+            <h2 class="widget-title">All Assets</h2>
+            <div class="asset-grid" id="all-assets">
+                <!-- All assets will be dynamically loaded here -->
+            </div>
+        </div>
+
+        <!-- Portfolio Growth Chart -->
+        <div class="widget chart-widget">
+            <h2 class="widget-title">Portfolio Performance</h2>
+            <p style="text-align: center; color: var(--rui-color-grey-tone-20); margin: 40px 0;">
+                📈 Historical chart coming soon<br>
+                <small>Real-time data is now live!</small>
+            </p>
+        </div>
+    </div>
+
+    <button class="refresh-btn" id="refresh-btn" onclick="loadPortfolioData()">
+        🔄
+    </button>
+
+    <div class="last-updated" id="last-updated">
+        Last updated: Never
+    </div>
+
+    <script>
+        // Portfolio API URL
+        const PORTFOLIO_API = 'https://milanhess.app.n8n.cloud/webhook/27f556e7-267a-4716-bd22-a9e4b1e690e1';
+
+        let portfolioData = null;
+
+        // Load portfolio data from API
+        async function loadPortfolioData() {
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const refreshBtn = document.getElementById('refresh-btn');
+            const errorContainer = document.getElementById('error-container');
+            
+            // Show loading state
+            loadingIndicator.style.display = 'inline-block';
+            refreshBtn.classList.add('loading');
+            errorContainer.innerHTML = '';
+
+            try {
+                const response = await fetch(PORTFOLIO_API);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(`API Error: ${response.status}`);
+                }
+
+                // Handle array response
+                portfolioData = Array.isArray(data) ? data[0] : data;
+
+                if (!portfolioData.success) {
+                    throw new Error(portfolioData.error || 'Portfolio data unavailable');
+                }
+
+                // Update all dashboard components
+                updateTotalValue(portfolioData.total_value_eur);
+                updatePlatforms(portfolioData.platforms);
+                updateHoldings(portfolioData.platforms);
+                updateAllocation(portfolioData.platforms);
+                
+                // Update last updated time
+                document.getElementById('last-updated').textContent = 
+                    `Last updated: ${new Date().toLocaleTimeString('nl-NL')}`;
+
+                console.log('✅ Portfolio data loaded successfully', portfolioData);
+
+            } catch (error) {
+                console.error('❌ Error loading portfolio:', error);
+                
+                // Show error message
+                errorContainer.innerHTML = `
+                    <div class="error-message">
+                        ⚠️ Failed to load portfolio data: ${error.message}
+                        <br><small>Check your internet connection or try again later.</small>
+                    </div>
+                `;
+
+                // Set error state
+                document.getElementById('total-amount').textContent = 'Error';
+                
+            } finally {
+                // Hide loading state
+                loadingIndicator.style.display = 'none';
+                refreshBtn.classList.remove('loading');
+            }
+        }
+
+        // Update total portfolio value
+        function updateTotalValue(totalValue) {
+            const totalAmount = document.getElementById('total-amount');
+            totalAmount.textContent = totalValue.toLocaleString('nl-NL', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // Update platforms list
+        function updatePlatforms(platforms) {
+            const platformsList = document.getElementById('platforms-list');
+            platformsList.innerHTML = '';
+
+            // Sort platforms by value (highest first)
+            const sortedPlatforms = Object.entries(platforms)
+                .sort(([,a], [,b]) => b.total_eur - a.total_eur);
+
+            sortedPlatforms.forEach(([platformName, platformData]) => {
+                const platformItem = document.createElement('div');
+                platformItem.className = 'platform-item';
+                platformItem.innerHTML = `
+                    <span class="platform-name">${getPlatformIcon(platformName)} ${platformName}</span>
+                    <span class="platform-value">€${platformData.total_eur.toLocaleString('nl-NL', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}</span>
+                `;
+                platformsList.appendChild(platformItem);
+            });
+        }
+
+        // Update top holdings
+        function updateHoldings(platforms) {
+            const holdingsContainer = document.getElementById('top-holdings');
+            holdingsContainer.innerHTML = '';
+
+            // Collect all assets and sort by value
+            const allAssets = [];
+            for (const [platformName, platformData] of Object.entries(platforms)) {
+                platformData.assets.forEach(asset => {
+                    allAssets.push({
+                        ...asset,
+                        platform: platformName,
+                        percentage: (asset.value_eur / portfolioData.total_value_eur * 100).toFixed(1)
+                    });
+                });
+            }
+
+            // Sort by value and take top 5
+            const topAssets = allAssets
+                .sort((a, b) => b.value_eur - a.value_eur)
+                .slice(0, 5);
+
+            topAssets.forEach(asset => {
+                const assetItem = document.createElement('div');
+                assetItem.className = 'asset-item';
+                assetItem.innerHTML = `
+                    <div class="asset-info">
+                        <span class="asset-name">${asset.asset_name || asset.symbol}</span>
+                        <span class="asset-platform">${asset.platform} • ${asset.amount.toFixed(6)} ${asset.symbol}</span>
+                    </div>
+                    <div class="asset-value">
+                        <span class="asset-amount">€${asset.value_eur.toLocaleString('nl-NL', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}</span>
+                        <div class="asset-percentage">${asset.percentage}%</div>
+                    </div>
+                `;
+                holdingsContainer.appendChild(assetItem);
+            });
+        }
+
+        // Update all assets detail view
+        function updateAllAssetsDetail(platforms) {
+            const allAssetsContainer = document.getElementById('all-assets');
+            allAssetsContainer.innerHTML = '';
+
+            // Collect all assets
+            const allAssets = [];
+            for (const [platformName, platformData] of Object.entries(platforms)) {
+                platformData.assets.forEach(asset => {
+                    allAssets.push({
+                        ...asset,
+                        platform: platformName,
+                        percentage: (asset.value_eur / portfolioData.total_value_eur * 100).toFixed(1)
+                    });
+                });
+            }
+
+            // Sort by value
+            allAssets.sort((a, b) => b.value_eur - a.value_eur);
+
+            allAssets.forEach(asset => {
+                const assetItem = document.createElement('div');
+                assetItem.className = 'asset-item';
+                assetItem.innerHTML = `
+                    <div class="asset-info">
+                        <span class="asset-name">${asset.asset_name || asset.symbol}</span>
+                        <span class="asset-platform">${asset.platform} • ${asset.amount.toFixed(6)} ${asset.symbol}</span>
+                    </div>
+                    <div class="asset-value">
+                        <span class="asset-amount">€${asset.value_eur.toLocaleString('nl-NL', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}</span>
+                        <div class="asset-percentage">${asset.percentage}%</div>
+                    </div>
+                `;
+                allAssetsContainer.appendChild(assetItem);
+            });
+        }
+
+        // Update asset allocation chart
+        function updateAllocation(platforms) {
+            // Calculate asset type allocations
+            const allocations = {
+                bitcoin: 0,
+                stocks: 0,
+                commodities: 0,
+                crypto: 0
+            };
+
+            for (const [platformName, platformData] of Object.entries(platforms)) {
+                platformData.assets.forEach(asset => {
+                    const symbol = asset.symbol.toLowerCase();
+                    if (symbol.includes('btc') || symbol.includes('bitcoin')) {
+                        allocations.bitcoin += asset.value_eur;
+                    } else if (symbol.includes('vuaa') || symbol.includes('meta') || asset.asset_name?.toLowerCase().includes('stock') || asset.asset_name?.toLowerCase().includes('vanguard')) {
+                        allocations.stocks += asset.value_eur;
+                    } else if (symbol.includes('gc=f') || asset.asset_name?.toLowerCase().includes('gold')) {
+                        allocations.commodities += asset.value_eur;
+                    } else {
+                        allocations.crypto += asset.value_eur;
+                    }
+                });
+            }
+
+            // Calculate percentages
+            const totalValue = portfolioData.total_value_eur;
+            const percentages = {
+                bitcoin: (allocations.bitcoin / totalValue * 100),
+                stocks: (allocations.stocks / totalValue * 100),
+                commodities: (allocations.commodities / totalValue * 100),
+                crypto: (allocations.crypto / totalValue * 100)
+            };
+
+            // Update donut chart (simplified - just update legend for now)
+            const legend = document.getElementById('allocation-legend');
+            legend.innerHTML = `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--rui-color-orange);"></div>
+                    <span class="legend-text">Bitcoin</span>
+                    <span class="legend-percentage">${percentages.bitcoin.toFixed(1)}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--rui-color-accent);"></div>
+                    <span class="legend-text">Stocks</span>
+                    <span class="legend-percentage">${percentages.stocks.toFixed(1)}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #ffd60a;"></div>
+                    <span class="legend-text">Commodities</span>
+                    <span class="legend-percentage">${percentages.commodities.toFixed(1)}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--rui-color-positive);"></div>
+                    <span class="legend-text">Other Crypto</span>
+                    <span class="legend-percentage">${percentages.crypto.toFixed(1)}%</span>
+                </div>
+            `;
+        }
+
+        // Get platform icons
+        function getPlatformIcon(platform) {
+            const icons = {
+                bitvavo: '₿',
+                revolut: '🏦',
+                bybit: '📈',
+                binance: '🟡',
+                coinbase: '🔵'
+            };
+            return icons[platform.toLowerCase()] || '💼';
+        }
+
+        // Auto-refresh every 5 minutes
+        function startAutoRefresh() {
+            setInterval(loadPortfolioData, 5 * 60 * 1000);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Portfolio Dashboard initializing...');
+            loadPortfolioData();
+            startAutoRefresh();
+        });
+
+        // Update all assets detail when holdings are updated
+        function updateHoldings(platforms) {
+            const holdingsContainer = document.getElementById('top-holdings');
+            holdingsContainer.innerHTML = '';
+
+            // Collect all assets and sort by value
+            const allAssets = [];
+            for (const [platformName, platformData] of Object.entries(platforms)) {
+                platformData.assets.forEach(asset => {
+                    allAssets.push({
+                        ...asset,
+                        platform: platformName,
+                        percentage: (asset.value_eur / portfolioData.total_value_eur * 100).toFixed(1)
+                    });
+                });
+            }
+
+            // Sort by value and take top 5
+            const topAssets = allAssets
+                .sort((a, b) => b.value_eur - a.value_eur)
+                .slice(0, 5);
+
+            topAssets.forEach(asset => {
+                const assetItem = document.createElement('div');
+                assetItem.className = 'asset-item';
+                assetItem.innerHTML = `
+                    <div class="asset-info">
+                        <span class="asset-name">${asset.asset_name || asset.symbol}</span>
+                        <span class="asset-platform">${asset.platform} • ${asset.amount.toFixed(6)} ${asset.symbol}</span>
+                    </div>
+                    <div class="asset-value">
+                        <span class="asset-amount">€${asset.value_eur.toLocaleString('nl-NL', {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        })}</span>
+                        <div class="asset-percentage">${asset.percentage}%</div>
+                    </div>
+                `;
+                holdingsContainer.appendChild(assetItem);
+            });
+
+            // Also update all assets detail
+            updateAllAssetsDetail(platforms);
+        }
+    </script>
+</body>
+</html>

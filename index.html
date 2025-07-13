@@ -455,7 +455,47 @@
                 updatePlatforms(portfolioData.platforms);
                 updateHoldings(portfolioData.platforms);
                 updateAllocation(portfolioData.platforms);
-                drawSimpleChart(portfolioData.total_value_eur);
+                
+                // Simple chart update - no function call needed
+                const canvas = document.getElementById('performanceChart');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = canvas.offsetWidth * 2;
+                    canvas.height = 400;
+                    ctx.scale(2, 2);
+                    
+                    const width = canvas.offsetWidth;
+                    const height = 200;
+                    
+                    ctx.clearRect(0, 0, width, height);
+                    
+                    // Draw "No historical data" message
+                    ctx.fillStyle = '#4e4e50';
+                    ctx.font = 'bold 16px -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto"';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('Historical data not available', width / 2, height / 2 - 20);
+                    
+                    ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto"';
+                    ctx.fillStyle = '#ee4a59';
+                    ctx.fillText('Connect historical data source for trends', width / 2, height / 2 + 10);
+                    
+                    // Draw red dashed line
+                    ctx.setLineDash([5, 5]);
+                    ctx.strokeStyle = '#ee4a59';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(40, height / 2);
+                    ctx.lineTo(width - 40, height / 2);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    
+                    // Update current value
+                    document.getElementById('all-time-high').textContent = `€${portfolioData.total_value_eur.toLocaleString('nl-NL', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    })}`;
+                }
                 
                 // Update last updated time
                 document.getElementById('last-updated').textContent = 

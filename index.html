@@ -198,9 +198,92 @@
 
         .donut-chart {
             position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 20px auto;
+        }
+
+        .chart-3d {
+            width: 100%;
+            height: 100%;
+            perspective: 1000px;
+        }
+
+        .pie-3d {
             width: 200px;
             height: 200px;
-            margin: 20px auto;
+            margin: 0 auto;
+            transform-style: preserve-3d;
+            transform: rotateX(60deg) rotateY(0deg);
+            animation: rotate3d 20s linear infinite;
+        }
+
+        @keyframes rotate3d {
+            0% { transform: rotateX(60deg) rotateY(0deg); }
+            100% { transform: rotateX(60deg) rotateY(360deg); }
+        }
+
+        .pie-slice {
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            transform-origin: center;
+            transform-style: preserve-3d;
+        }
+
+        .pie-slice::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transform-origin: center;
+            opacity: 0.9;
+        }
+
+        .pie-slice::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            transform: translateZ(15px);
+            transform-origin: center;
+            opacity: 0.7;
+        }
+
+        .slice-bitcoin::before {
+            background: conic-gradient(from 0deg, #ff9f0a 0deg, #ff9f0a var(--bitcoin-angle, 126deg), transparent var(--bitcoin-angle, 126deg));
+        }
+        .slice-bitcoin::after {
+            background: conic-gradient(from 0deg, #ffb84d 0deg, #ffb84d var(--bitcoin-angle, 126deg), transparent var(--bitcoin-angle, 126deg));
+        }
+
+        .slice-stocks::before {
+            background: conic-gradient(from var(--bitcoin-angle, 126deg), #ff6112 var(--bitcoin-angle, 126deg), #ff6112 var(--stocks-end, 247deg), transparent var(--stocks-end, 247deg));
+            transform: rotateZ(var(--bitcoin-angle, 126deg));
+        }
+        .slice-stocks::after {
+            background: conic-gradient(from 0deg, #ff7d3d 0deg, #ff7d3d var(--stocks-size, 121deg), transparent var(--stocks-size, 121deg));
+            transform: rotateZ(var(--bitcoin-angle, 126deg)) translateZ(15px);
+        }
+
+        .slice-commodities::before {
+            background: conic-gradient(from 0deg, #ffd60a 0deg, #ffd60a var(--commodities-size, 86deg), transparent var(--commodities-size, 86deg));
+            transform: rotateZ(var(--commodities-start, 247deg));
+        }
+        .slice-commodities::after {
+            background: conic-gradient(from 0deg, #ffe347 0deg, #ffe347 var(--commodities-size, 86deg), transparent var(--commodities-size, 86deg));
+            transform: rotateZ(var(--commodities-start, 247deg)) translateZ(15px);
+        }
+
+        .slice-crypto::before {
+            background: conic-gradient(from 0deg, #13d1a3 0deg, #13d1a3 var(--crypto-size, 27deg), transparent var(--crypto-size, 27deg));
+            transform: rotateZ(var(--crypto-start, 333deg));
+        }
+        .slice-crypto::after {
+            background: conic-gradient(from 0deg, #4ddfbb 0deg, #4ddfbb var(--crypto-size, 27deg), transparent var(--crypto-size, 27deg));
+            transform: rotateZ(var(--crypto-start, 333deg)) translateZ(15px);
         }
 
         .donut-segment {
@@ -304,9 +387,9 @@
                     "header"
                     "platforms"
                     "allocation"
+                    "chart"
                     "holdings"
-                    "details"
-                    "chart";
+                    "details";
             }
             
             .total-value {
@@ -348,11 +431,14 @@
         <div class="widget allocation-widget">
             <h2 class="widget-title">Asset Allocation</h2>
             <div class="donut-chart">
-                <svg width="200" height="200" viewBox="0 0 200 200" id="allocation-chart">
-                    <!-- Will be dynamically updated -->
-                    <circle class="donut-segment donut-bitcoin" cx="100" cy="100" r="80" 
-                            stroke-dasharray="0 500" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
-                </svg>
+                <div class="chart-3d">
+                    <div class="pie-3d" id="pie-3d">
+                        <div class="pie-slice slice-bitcoin"></div>
+                        <div class="pie-slice slice-stocks"></div>
+                        <div class="pie-slice slice-commodities"></div>
+                        <div class="pie-slice slice-crypto"></div>
+                    </div>
+                </div>
             </div>
             <div class="legend" id="allocation-legend">
                 <!-- Legend will be dynamically updated -->
@@ -388,10 +474,23 @@
         <!-- Portfolio Growth Chart -->
         <div class="widget chart-widget">
             <h2 class="widget-title">Portfolio Performance</h2>
-            <p style="text-align: center; color: var(--rui-color-grey-tone-20); margin: 40px 0;">
-                📈 Historical chart coming soon<br>
-                <small>Real-time data is now live!</small>
-            </p>
+            <div style="width: 100%; height: 200px; position: relative;">
+                <canvas id="performanceChart" width="100%" height="200"></canvas>
+            </div>
+            <div style="display: flex; justify-content: space-around; margin-top: 16px; padding: 12px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                <div style="text-align: center;">
+                    <div style="font-size: 0.75rem; color: var(--rui-color-grey-tone-20);">24H Change</div>
+                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--rui-color-positive);" id="change-24h">+€45 (+0.7%)</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.75rem; color: var(--rui-color-grey-tone-20);">7D Change</div>
+                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--rui-color-positive);" id="change-7d">+€123 (+1.9%)</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 0.75rem; color: var(--rui-color-grey-tone-20);">All-Time High</div>
+                    <div style="font-size: 0.875rem; font-weight: 600; color: var(--rui-color-foreground);" id="all-time-high">€6,489</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -440,6 +539,7 @@
                 updatePlatforms(portfolioData.platforms);
                 updateHoldings(portfolioData.platforms);
                 updateAllocation(portfolioData.platforms);
+                updatePerformanceChart(portfolioData.total_value_eur);
                 
                 // Update last updated time
                 document.getElementById('last-updated').textContent = 
@@ -607,7 +707,7 @@
                 });
             }
 
-            // Calculate percentages
+            // Calculate percentages and angles
             const totalValue = portfolioData.total_value_eur;
             const percentages = {
                 bitcoin: (allocations.bitcoin / totalValue * 100),
@@ -616,16 +716,43 @@
                 crypto: (allocations.crypto / totalValue * 100)
             };
 
-            // Update donut chart (simplified - just update legend for now)
+            // Calculate angles for 3D pie chart (360 degrees total)
+            const angles = {
+                bitcoin: percentages.bitcoin * 3.6,
+                stocks: percentages.stocks * 3.6,
+                commodities: percentages.commodities * 3.6,
+                crypto: percentages.crypto * 3.6
+            };
+
+            // Update CSS custom properties for 3D chart
+            const root = document.documentElement;
+            let currentAngle = 0;
+            
+            root.style.setProperty('--bitcoin-angle', `${angles.bitcoin}deg`);
+            currentAngle += angles.bitcoin;
+            
+            root.style.setProperty('--stocks-start', `${currentAngle}deg`);
+            root.style.setProperty('--stocks-size', `${angles.stocks}deg`);
+            root.style.setProperty('--stocks-end', `${currentAngle + angles.stocks}deg`);
+            currentAngle += angles.stocks;
+            
+            root.style.setProperty('--commodities-start', `${currentAngle}deg`);
+            root.style.setProperty('--commodities-size', `${angles.commodities}deg`);
+            currentAngle += angles.commodities;
+            
+            root.style.setProperty('--crypto-start', `${currentAngle}deg`);
+            root.style.setProperty('--crypto-size', `${angles.crypto}deg`);
+
+            // Update legend
             const legend = document.getElementById('allocation-legend');
             legend.innerHTML = `
                 <div class="legend-item">
-                    <div class="legend-color" style="background: var(--rui-color-orange);"></div>
+                    <div class="legend-color" style="background: #ff9f0a;"></div>
                     <span class="legend-text">Bitcoin</span>
                     <span class="legend-percentage">${percentages.bitcoin.toFixed(1)}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: var(--rui-color-accent);"></div>
+                    <div class="legend-color" style="background: #ff6112;"></div>
                     <span class="legend-text">Stocks</span>
                     <span class="legend-percentage">${percentages.stocks.toFixed(1)}%</span>
                 </div>
@@ -635,7 +762,7 @@
                     <span class="legend-percentage">${percentages.commodities.toFixed(1)}%</span>
                 </div>
                 <div class="legend-item">
-                    <div class="legend-color" style="background: var(--rui-color-positive);"></div>
+                    <div class="legend-color" style="background: #13d1a3;"></div>
                     <span class="legend-text">Other Crypto</span>
                     <span class="legend-percentage">${percentages.crypto.toFixed(1)}%</span>
                 </div>
